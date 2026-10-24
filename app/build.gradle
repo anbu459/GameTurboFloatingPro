@@ -1,0 +1,15 @@
+plugins {
+    id 'com.android.application'
+}
+android {
+    namespace 'com.gameturbo.floatingpro'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.gameturbo.floatingpro'
+        minSdk 23
+        targetSdk 29
+        versionCode 5
+        versionName '5.0'
+    }
+}
