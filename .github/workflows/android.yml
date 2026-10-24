@@ -2,7 +2,9 @@ name: Build GameTurboFloatingPro
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -11,6 +13,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout repository
@@ -22,18 +28,29 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Locate Android SDK
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-          yes | sdkmanager --licenses || true
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          test -d "$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
 
-      - name: Check Gradle wrapper
+      - name: Install required SDK packages
         run: |
-          ls -la
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found in Android SDK."
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Verify Gradle wrapper
+        run: |
           test -f gradlew
+          test -f gradle/wrapper/gradle-wrapper.properties
           chmod +x gradlew
 
       - name: Build debug APK
@@ -46,4 +63,5 @@ jobs:
           name: GameTurboFloatingPro-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
 
