@@ -37,24 +37,30 @@ jobs:
           test -d "$ANDROID_HOME"
           ls -la "$ANDROID_HOME"
 
-      - name: Install required SDK packages
+      - name: Install Android SDK packages
         run: |
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
           if [ -z "$SDKMANAGER" ]; then
-            echo "ERROR: sdkmanager not found in Android SDK."
+            echo "ERROR: sdkmanager not found"
             exit 1
           fi
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Verify Gradle wrapper
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Check project files
         run: |
-          test -f gradlew
-          test -f gradle/wrapper/gradle-wrapper.properties
-          chmod +x gradlew
+          test -f settings.gradle || test -f settings.gradle.kts
+          test -f build.gradle || test -f build.gradle.kts
+          test -f app/build.gradle || test -f app/build.gradle.kts
+          echo "Project files found"
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload APK
         if: success()
@@ -63,5 +69,6 @@ jobs:
           name: GameTurboFloatingPro-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
 
 
